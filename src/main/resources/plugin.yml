@@ -1,0 +1,6 @@
+name: CombatReport
+version: '${version}'
+main: me.bscal.combatreport.CombatReportKotlin
+api-version: 1.17
+libraries:
+  - "net.axay:kspigot:1.17.4"
