@@ -1,72 +1,85 @@
 package me.bscal.combatreport
 
 import org.bukkit.Bukkit
-import org.bukkit.block.Block
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
+import org.bukkit.entity.Projectile
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
-import org.bukkit.event.entity.EntityDamageByBlockEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDamageEvent
-import org.bukkit.event.entity.EntityDamageEvent.DamageCause
-import org.bukkit.event.player.PlayerRespawnEvent
+import org.bukkit.event.entity.EntityRegainHealthEvent
+import org.bukkit.event.entity.PlayerDeathEvent
+import java.util.*
 
 class CombatListener : Listener
 {
 
 	@EventHandler(priority = EventPriority.MONITOR)
-	fun OnPlayerDamagedEvent(event: EntityDamageByEntityEvent)
+	fun OnDeath(event: PlayerDeathEvent)
 	{
-		val damagee: Entity = event.entity;
-		if (damagee is Player)
-		{
-			val damager: Entity = event.damager;
-			val damage: Double = event.damage;
-			val cause: DamageCause = event.cause;
-			val name : String = if (damager.customName.isNullOrBlank()) damager.name else damager.customName!!;
-			val entry: CombatEntry = CombatEntry(name, damage, cause, isDeath = damagee.isDead);
-			Bukkit.getLogger().info(entry.toString())
-
-			val playerData = PlayerEntries[damagee.uniqueId];
-			val entries = playerData?.currentEntries;
-			if (entries != null)
-			{
-				if (entries.remainingCapacity() == 0)
-					entries.remove()
-
-				entries.add(entry);
-			}
-
-			if (entry.isDeath)
-				playerData?.HandleDeathSwap();
-		}
+		event.entity.spigot().sendMessage(DeathText)
+		PlayerEntries[event.entity.uniqueId]?.HandleDeathSwap();
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR)
-	fun OnPlayerDamagedByBlockEvent(event: EntityDamageByBlockEvent)
+	fun OnRegenateHealth(event: EntityRegainHealthEvent)
 	{
-		val damagee: Entity = event.entity;
-		if (damagee is Player)
+		if (event.entity is Player)
 		{
-			val damager: Block? = event.damager;
-			val damage: Double = event.damage;
-			val cause: DamageCause = event.cause;
-			val entry: CombatEntry = CombatEntry(damager!!.type.name, damage, cause, isDeath = damagee.isDead);
+			val player: Player = event.entity as Player
+			val entry = CombatEntry("regeneration", event.amount, event.amount, event.regainReason.name, player.health, isHeal = true)
+			AddEntry(player.uniqueId, entry)
+			Bukkit.getLogger().info("PlayerHealed: $entry")
+		}
+	}
 
-			val playerData = PlayerEntries[damagee.uniqueId];
-			val entries = playerData?.currentEntries;
-			if (entries != null)
-			{
-				if (entries.remainingCapacity() == 0)
-					entries.remove()
+	// Called from OnPlayerDamagedByOther instead of registering both events
+	private fun OnPlayerDamagedEvent(event: EntityDamageByEntityEvent)
+	{
+		val damagee: Player = event.entity as Player
+		val damager: Entity = event.damager
 
-				entries.add(entry);
-			}
+		// We need to check if we should get the shooter's name or the damager's name
+		val sourceName: String = if (damager is Projectile && damager.shooter is Entity)
+		{
+			val shooter: Entity = damager.shooter as Entity
+			if (shooter.customName.isNullOrBlank()) shooter.name else shooter.customName!!
+		}
+		else if (damager.customName.isNullOrBlank()) damager.name else damager.customName!!
 
-			if (entry.isDeath)
-				playerData?.HandleDeathSwap();
+		val entry = CombatEntry(sourceName, event.damage, event.finalDamage, event.cause.name, damagee.health)
+		AddEntry(damagee.uniqueId, entry)
+		Bukkit.getLogger().info("DamageByEntity: $entry")
+	}
+
+	/**
+	 * Event used to get all other damages that are not from entities. (Blocks, fire, falling...)
+	 */
+	@EventHandler(priority = EventPriority.MONITOR)
+	fun OnPlayerDamagedByOther(event: EntityDamageEvent)
+	{
+		if (event.entity is Player)
+		{
+			if (event is EntityDamageByEntityEvent) return OnPlayerDamagedEvent(event)
+
+			val damagee: Player = event.entity as Player
+			val entry = CombatEntry("environment", event.damage, event.finalDamage, event.cause.name, damagee.health)
+			AddEntry(damagee.uniqueId, entry);
+			Bukkit.getLogger().info("DamagedByOther: $entry")
+		}
+	}
+
+	private fun AddEntry(uuid: UUID, entry: CombatEntry)
+	{
+		val playerData = PlayerEntries[uuid];
+		val entries = playerData?.currentEntries;
+		if (entries != null)
+		{
+			if (entries.remainingCapacity() == 0) entries.remove()
+
+			entries.add(entry);
 		}
 	}
 
