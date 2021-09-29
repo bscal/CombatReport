@@ -13,7 +13,7 @@ import org.bukkit.inventory.meta.SkullMeta
 import java.util.*
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
-import kotlin.math.ceil
+import kotlin.math.round
 
 val DEATH_STRING: String = "${KColors.LIGHTGRAY}Death: ${KColors.RED}"
 val HEAL_STRING: String = "${KColors.LIGHTGRAY}Healing Received: ${KColors.GREEN}"
@@ -45,32 +45,34 @@ val PageTwoIconHighlighted: ItemStack = itemStack(Material.BONE) {
 }
 
 private fun IconForEntry(player: Player, entry: CombatEntry): ItemStack
-{
-	// ***********************************************************
+{	// ***********************************************************
 	// Set values based on damage taken or healing. Super ugly because of formatting and colors
 	// I cannot remember if there is a better method for colors. possible TODO printf style?
 	val playerHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH)?.value ?: 0.0
 	val iconString: String
 	val material: Material
-	val healthInfo: String
+	val healthInfo: Double
 	val damageInfo: String
 	val targetInfo: String
 	if (entry.isHeal)
 	{
 		iconString = HEAL_STRING
 		material = Material.EMERALD_BLOCK
-		healthInfo = String.format("%.2f",
-			playerHealth.coerceAtMost(entry.health + entry.damage))
+		healthInfo = playerHealth.coerceAtMost(entry.health + entry.damage)
 		damageInfo = "${KColors.LIGHTGRAY}Healed ${KColors.GREEN}${String.format("%.2f", entry.finalDamage)} ${KColors.LIGHTGRAY}health"
-		targetInfo = "${KColors.LIGHTGRAY}From ${KColors.GREEN}${entry.source}${KColors.LIGHTGRAY} by ${KColors.GREEN}${entry.cause.lowercase(
-			Locale.getDefault()).replace("_", " ")}"
+		targetInfo = "${KColors.LIGHTGRAY}From ${KColors.GREEN}${entry.source}${KColors.LIGHTGRAY} by ${KColors.GREEN}${
+			entry.cause.lowercase(Locale.getDefault()).replace("_", " ")
+		}"
 	}
 	else
 	{
-		healthInfo = String.format("%.2f", 0.0.coerceAtLeast(entry.health - entry.damage))
-		damageInfo = "${KColors.LIGHTGRAY}Received ${KColors.RED}${String.format("%.2f", entry.finalDamage)}${KColors.LIGHTGRAY} (${KColors.RED}${String.format("%.2f", entry.damage)}${KColors.LIGHTGRAY} raw) damage"
-		targetInfo = "${KColors.LIGHTGRAY}From ${KColors.RED}${entry.source}${KColors.LIGHTGRAY} by ${KColors.RED}${entry.cause.lowercase(
-			Locale.getDefault()).replace("_", " ")}"
+		healthInfo = 0.0.coerceAtLeast(entry.health - entry.damage)
+		damageInfo = "${KColors.LIGHTGRAY}Received ${KColors.RED}${
+			String.format("%.2f", entry.finalDamage)
+		}${KColors.LIGHTGRAY} (${KColors.RED}${String.format("%.2f", entry.damage)}${KColors.LIGHTGRAY} raw) damage"
+		targetInfo = "${KColors.LIGHTGRAY}From ${KColors.RED}${entry.source}${KColors.LIGHTGRAY} by ${KColors.RED}${
+			entry.cause.lowercase(Locale.getDefault()).replace("_", " ")
+		}"
 		if (entry.isDeath)
 		{
 			iconString = DEATH_STRING
@@ -86,9 +88,9 @@ private fun IconForEntry(player: Player, entry: CombatEntry): ItemStack
 	// ***********************************************************
 	// Creates the icon item stack for the entry
 	return itemStack(material) {
-		amount = 1.coerceAtLeast(ceil(playerHealth).toInt())
+		amount = 1.coerceAtLeast(round(healthInfo).toInt())
 		meta {
-			name = "$iconString ${String.format("%.2f", entry.health)} -> $healthInfo"
+			name = "$iconString ${String.format("%.2f -> %.2f", entry.health, healthInfo)}"
 			addLore {
 				+damageInfo
 				+targetInfo
@@ -105,7 +107,6 @@ private fun FillInventory(player: Player, page: GUIPageBuilder<ForInventorySixBy
 
 	for (entry in queue)
 	{
-		queue.last()
 		page.placeholder(SingleInventorySlot(y, x), IconForEntry(player, entry))
 		x--;
 		if (x < 1)
@@ -125,6 +126,12 @@ fun OpenGUI(player: Player)
 			this as SkullMeta
 			owningPlayer = player;
 			name = "${KColors.GOLD}${player.name}"
+			addLore {
+				+"${KColors.LIGHTGRAY}Health ${String.format("%.2f", player.health)}/${
+					player.getAttribute(Attribute.GENERIC_MAX_HEALTH)?.value ?: 0.0
+				}"
+				+"${KColors.LIGHTGRAY}Armor ${player.getAttribute(Attribute.GENERIC_ARMOR)?.value ?: 0.0}"
+			}
 		}
 	}
 

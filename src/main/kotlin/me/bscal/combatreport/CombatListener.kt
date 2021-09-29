@@ -24,7 +24,7 @@ class CombatListener : Listener
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR)
-	fun OnRegenateHealth(event: EntityRegainHealthEvent)
+	fun OnRegenerateHealth(event: EntityRegainHealthEvent)
 	{
 		if (event.entity is Player)
 		{
