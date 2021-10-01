@@ -8,8 +8,15 @@ current life's info and your last death's info.
 My reason for making this was I always thought it would be cool to have a 
 damage meter type plugin showing stats. Plus I wanted to practice kotlin.
 
+### Requirements
+CombatReport does not require you to download any dependencies. KSpigot will automatically
+download thanks to the plugin.yml "libraries" field.
+
+I have not tested or will support versions below these:
+* Java 16
+* Minecraft/Spigot 1.17.1
+
 ### Installing
-Requires no dependencies but does use the KSpigot library which your server will automatically download
 #### Server
 * Download the jar from releases
 * Place inside your server's plugin's directory
