@@ -18,15 +18,20 @@ class CombatReport : KSpigot()
 	companion object
 	{
 		lateinit var INSTANCE: CombatReport; private set
+
+		fun DebugEnabled(): Boolean = INSTANCE.config.getBoolean("debug_mode")
 	}
 
 	override fun load()
 	{
-		INSTANCE = this;
+		INSTANCE = this
 	}
 
 	override fun startup()
-	{        // Plugin startup logic
+	{
+		// Plugin startup logic
+		saveDefaultConfig()
+
 		server.pluginManager.registerEvents(LoginListeners(), this)
 		server.pluginManager.registerEvents(CombatListener(), this)
 

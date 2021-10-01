@@ -31,7 +31,8 @@ class CombatListener : Listener
 			val player: Player = event.entity as Player
 			val entry = CombatEntry("regeneration", event.amount, event.amount, event.regainReason.name, player.health, isHeal = true)
 			AddEntry(player.uniqueId, entry)
-			Bukkit.getLogger().info("PlayerHealed: $entry")
+
+			if (CombatReport.DebugEnabled()) Bukkit.getLogger().info("PlayerHealed: $entry")
 		}
 	}
 
@@ -51,7 +52,8 @@ class CombatListener : Listener
 
 		val entry = CombatEntry(sourceName, event.damage, event.finalDamage, event.cause.name, damagee.health)
 		AddEntry(damagee.uniqueId, entry)
-		Bukkit.getLogger().info("DamageByEntity: $entry")
+
+		if (CombatReport.DebugEnabled()) Bukkit.getLogger().info("DamageByEntity: $entry")
 	}
 
 	/**
@@ -66,8 +68,9 @@ class CombatListener : Listener
 
 			val damagee: Player = event.entity as Player
 			val entry = CombatEntry("environment", event.damage, event.finalDamage, event.cause.name, damagee.health)
-			AddEntry(damagee.uniqueId, entry);
-			Bukkit.getLogger().info("DamagedByOther: $entry")
+			AddEntry(damagee.uniqueId, entry)
+
+			if (CombatReport.DebugEnabled()) Bukkit.getLogger().info("DamagedByOther: $entry")
 		}
 	}
 
